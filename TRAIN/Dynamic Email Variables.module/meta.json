@@ -1,0 +1,7 @@
+{
+  "global" : false,
+  "host_template_types" : [ "EMAIL" ],
+  "module_id" : 126956452012,
+  "label" : "Dynamic Email Variables",
+  "is_available_for_new_content" : true
+}

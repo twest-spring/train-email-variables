@@ -1,0 +1,190 @@
+{# shows a tooltip in the editor view and a link to documentation #}
+{% if request.postDict.inpageEditorUI %}
+<div>Dynamic Email Variables</div>
+<div><a href="https://springeq.atlassian.net/wiki/spaces/HUBSPOT/pages/1057816578/Programmable+Emails" target="_blank">Documentation Link</a></div>
+<div style="font-size: 12px;">Note: this block of text will be gone once email is sent.</div>
+{% endif %}
+
+{# creates a global 'data' object that can be accessed via other email modules #}
+{% set data = {} %}
+{# creates an 'id' with a random integer to break up some of the caching in some email clients#}
+{% set random_int = range(0,(local_dt|unixtimestamp * 10000))|random %}
+{% do data.update({ "id": random_int })%}
+
+
+{# ---------------------------------------------------------------- #}
+{# variables dependent on contact, deal, company, etc. properties #}
+{% if deal.application_date %}
+  {# retrives date of application submission #}
+  {% set application_date = deal.application_date %}
+  {# gets the very last millisecond of today's date #}
+  {% set today_timestamp = today('America/New_York').plusDays(1)|unixtimestamp - 1 %}
+  {# finds the difference, in days, between the application date and today's date #}
+  {% set days_since_application = application_date|between_times(today_timestamp, "days") %}
+  {# saves info to 'data' object #}
+  {% do data.update({ "days_since_application": days_since_application })%}
+
+  {% set bdates_array = [] %}
+  {% do bdates_array.append({}) %}
+  {# calculates up to 30 business days in the future #}
+  {% for x in range(30) %}
+    {% set bdate_object = {} %}
+    {% do bdate_object.update({ "index": loop.index }) %}
+    {% do bdate_object.update({ "short": "" }) %}
+    {% do bdate_object.update({ "long":  "" }) %}
+
+    {% set future_business_dates_array = [] %}
+    {% set future_amount = loop.index * 3 %}
+    {% for y in range(future_amount) %}
+      {# create datetimestamp #}
+      {% set future_date = application_date|unixtimestamp + (loop.index * 86400000) %}
+      {# create weekend index to sort days #}
+      {% set date_index = future_date|unixtimestamp|datetimeformat("%w")|int %}
+      {# if not weekend, add date to future_business_dates_array #}
+      {% if date_index != 7 and date_index != 1 %}
+        {% do future_business_dates_array.append(future_date) %}
+      {% endif %}
+    {% endfor %}
+
+    {% set correct_date = future_business_dates_array[(loop.index-1)] %}
+    {% do bdate_object.update({"short": format_date(correct_date, "short") }) %}
+    {% do bdate_object.update({"long": format_date(correct_date, "long") }) %}
+    {% do bdates_array.append(bdate_object) %}
+  {% endfor %}
+  
+  {% do data.update({ "application_business_dates": bdates_array }) %}
+{% endif %}
+
+
+
+{% if deal.disbursement_date %}
+  {# retrives date of disbursement #}
+  {% set disbursement_date = deal.disbursement_date %}
+  {# build an array that will be populated and returned #}
+  {% set bdates_array = [] %}
+  {# adds a blank object at start of array to keep dates on a 1-index instead of 0-index #}
+  {% do bdates_array.append({}) %}
+  {# calculates up to 30 business days in the future #}
+  {% for x in range(30) %}
+    {% set bdate_object = {} %}
+    {% do bdate_object.update({ "index": loop.index }) %}
+    {% do bdate_object.update({ "short": "" }) %}
+    {% do bdate_object.update({ "long":  "" }) %}
+    {# finds dates up to 3 in the future to determine next business date #}
+    {% set future_business_dates_array = [] %}
+    {% set future_amount = loop.index * 3 %}
+    {% for y in range(future_amount) %}
+      {# create datetimestamp #}
+      {% set future_date = disbursement_date|unixtimestamp + (loop.index * 86400000) %}
+      {# create weekend index to sort days #}
+      {% set date_index = future_date|unixtimestamp|datetimeformat("%w")|int %}
+      {# if not weekend, add date to future_business_dates_array #}
+      {% if date_index != 7 and date_index != 1 %}
+        {% do future_business_dates_array.append(future_date) %}
+      {% endif %}
+    {% endfor %}
+
+    {% set correct_date = future_business_dates_array[(loop.index-1)] %}
+    {% do bdate_object.update({"short": format_date(correct_date, "short") }) %}
+    {% do bdate_object.update({"long": format_date(correct_date, "long") }) %}
+    {% do bdates_array.append(bdate_object) %}
+  {% endfor %}
+  
+  {% do data.update({ "disbursement_business_dates": bdates_array }) %}
+{% endif %}
+
+
+{# ---------------------------------------------------------------- #}
+{# variables not dependent on contact, deal, company, etc. properties #}
+
+{# today's date #}
+{% set today = today('America/New_York') %}
+{# add formatted dates to global 'data' object #}
+{% do data.update({ "today_date": {} })%}
+{% do data.today_date.update({ "short": format_date(today, "short") })%}
+{% do data.today_date.update({ "long": format_date(today, "long") })%}
+
+{# tomorrow's date #}
+{% set tomorrow = today('America/New_York').plusDays(1) %}
+{# add formatted dates to global 'data' object #}
+{% do data.update({ "tomorrow_date": {} })%}
+{% do data.tomorrow_date.update({ "short": format_date(tomorrow, "short") })%}
+{% do data.tomorrow_date.update({ "long": format_date(tomorrow, "long") })%}
+
+{# build a business dates array that will be populated and returned #}
+{% set bdates_array = [] %}
+{# adds a blank object at start of array to keep dates on a 1-index instead of 0-index #}
+{% do bdates_array.append({}) %}
+{# calculates up to 30 business days in the future #}
+{% for x in range(30) %}
+  {% set bdate_object = {} %}
+  {% do bdate_object.update({ "index": loop.index }) %}
+  {% do bdate_object.update({ "short": "" }) %}
+  {% do bdate_object.update({ "long":  "" }) %}
+  {# finds dates up to 3 in the future to determine next business date #}
+  {% set future_business_dates_array = [] %}
+  {% set future_amount = loop.index * 3 %}
+  {% for y in range(future_amount) %}
+    {# create datetimestamp #}
+    {% set future_date = today('America/New_York')|unixtimestamp + (loop.index * 86400000) %}
+    {# create weekend index to sort days #}
+    {% set date_index = future_date|unixtimestamp|datetimeformat("%w")|int %}
+    {# if not weekend, add date to future_business_dates_array #}
+    {% if date_index != 7 and date_index != 1 %}
+      {% do future_business_dates_array.append(future_date) %}
+    {% endif %}
+  {% endfor %}
+
+  {% set correct_date = future_business_dates_array[(loop.index-1)] %}
+  {% do bdate_object.update({"short": format_date(correct_date, "short") }) %}
+  {% do bdate_object.update({"long": format_date(correct_date, "long") }) %}
+  {% do bdates_array.append(bdate_object) %}
+{% endfor %}
+{# update global data object with array of 30 business dates in the future #}
+{% do data.update({ "business_dates": bdates_array }) %}
+
+
+
+
+
+
+{% macro get_business_dates(start_date) -%}
+  {%- set business_date_array = [] -%}
+  {%- set start_date_unix = start_date|unixtimestamp -%}
+  {%- set start_date_object = {} -%}
+  {%- do start_date_object.update({"short": format_date(start_date_unix, "short")}) -%}
+  {%- do start_date_object.update({"long": format_date(start_date_unix, "long")}) -%}
+  {%- do business_date_array.append(start_date_object) -%}
+
+  {%- for x in range(30) -%}
+    {%- set business_date_object = {} -%}
+    {%- set start_date_unix = start_date|unixtimestamp -%}
+    {%- set this_date_unix = start_date_unix + (loop.index * 86400000) -%}
+
+    {%- set future_business_dates_array = [] -%}
+    {%- set future_amount = loop.index * 3 -%}
+    {%- for y in range(future_amount) -%}
+      {%- set future_date = start_date_unix + (loop.index * 86400000) -%}
+      {%- set future_date_index = future_date|datetimeformat("%w")|int -%}
+      {%- if future_date_index != 7 and future_date_index != 1 -%}
+        {%- do future_business_dates_array.append(future_date) -%}
+      {%- endif -%}
+    {%- endfor -%}
+
+    {%- set correct_date_unix = future_business_dates_array[(loop.index-1)] -%}
+    {%- do business_date_object.update({"short": format_date(correct_date_unix, "short")}) -%}
+    {%- do business_date_object.update({"long": format_date(correct_date_unix, "long")}) -%}
+    {%- do business_date_array.append(business_date_object) -%}
+  {%- endfor -%}
+
+  {{ business_date_array }}
+{%- endmacro %}
+
+
+{# 
+TODO: saving the array to this variable converts it to a string, however
+if not saved to a variable, the email won't send and the error is underreported 
+#}
+{% set testDate = today('America/New_York') %}
+{% set testArray = get_business_dates(testDate) %}
+{% do data.update({ "TEST": testArray }) %}
