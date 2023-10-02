@@ -97,9 +97,9 @@
 
 {# Build appraisals object to store data and be used by user #}
 {% do data.update({ "appraisals": {} }) %}
-{% do data.appraisals.update({ "received": { all: [], most_recent: {}, total: 0 } }) %}
-{% do data.appraisals.update({ "accepted": { all: [], most_recent: {},  total: 0 } }) %}
-{% do data.appraisals.update({ "ordered": { all: [], most_recent: {},  total: 0 } }) %}
+{% do data.appraisals.update({ "received": {} }) %}
+{% do data.appraisals.update({ "accepted": {} }) %}
+{% do data.appraisals.update({ "full_ordered": {} }) %}
 
 {# Stores Deal ID and lists properties to grab from valuation object #}
 {% set deal_id = deal.hs_object_id %}
@@ -112,10 +112,26 @@
   {% set most_recent_obj = appraisal_received_valuations.results[0] %}
   {% set total = appraisal_received_valuations.total %}
 
-  {% do data.appraisals.received.update({ "all": property_valuation_objs }) %}
-  {% do data.appraisals.received.update({ "most_recent": most_recent_obj }) %}
-  {% do data.appraisals.received.update({ "total": total }) %}
+  {# add most recent #}
+  {% do data.appraisals.update({"received": most_recent_obj}) %}
+  {# save the datetime in a variable #}
+  {% set appraisal_ordered_date_unix = most_recent_obj.appraisal_ordered_date %}
+  {% set appraisal_received_date_unix = most_recent_obj.appraisal_received_date %}
+  {% set appraisal_transfer_date_unix = most_recent_obj.appraisal_transfer_date %}
+  {# resets the set property value. This is because HubSpot stores this as a unix string and an object is needed #}
+  {% do data.appraisals.received.update({"appraisal_ordered_date": {}}) %}
+  {% do data.appraisals.received.update({"appraisal_received_date": {}}) %}
+  {% do data.appraisals.received.update({"appraisal_transfer_date": {}}) %}
+  {# save formatted versions of date #}
+  {% do data.appraisals.received.appraisal_ordered_date.update({ "short": format_date(appraisal_ordered_date_unix, "short") }) %}
+  {% do data.appraisals.received.appraisal_ordered_date.update({ "long": format_date(appraisal_ordered_date_unix, "long") }) %}
+  {% do data.appraisals.received.appraisal_received_date.update({ "short": format_date(appraisal_received_date_unix, "short") }) %}
+  {% do data.appraisals.received.appraisal_received_date.update({ "long": format_date(appraisal_received_date_unix, "long") }) %}
+  {% do data.appraisals.received.appraisal_transfer_date.update({ "short": format_date(appraisal_transfer_date_unix, "short") }) %}
+  {% do data.appraisals.received.appraisal_transfer_date.update({ "long": format_date(appraisal_transfer_date_unix, "long") }) %}
+
 {% endif %}
+
 
 {# AVM Accepted #}
 {% set avm_accepted_valuations = crm_associations(deal_id, "USER_DEFINED", 196, "limit=99&orderBy=-appraisal_ordered_date&appraisal_product_description=AVM", properties_to_grab, false) %} 
@@ -124,10 +140,26 @@
   {% set most_recent_obj = avm_accepted_valuations.results[0] %}
   {% set total = avm_accepted_valuations.total %}
 
-  {% do data.appraisals.accepted.update({ "all": property_valuation_objs }) %}
-  {% do data.appraisals.accepted.update({ "most_recent": most_recent_obj }) %}
-  {% do data.appraisals.accepted.update({ "total": total }) %}
+  {# add most recent #}
+  {% do data.appraisals.update({"accepted": most_recent_obj}) %}
+  {# save the datetime in a variable #}
+  {% set appraisal_ordered_date_unix = most_recent_obj.appraisal_ordered_date %}
+  {% set appraisal_received_date_unix = most_recent_obj.appraisal_received_date %}
+  {% set appraisal_transfer_date_unix = most_recent_obj.appraisal_transfer_date %}
+  {# resets the set property value. This is because HubSpot stores this as a unix string and an object is needed #}
+  {% do data.appraisals.accepted.update({"appraisal_ordered_date": {}}) %}
+  {% do data.appraisals.accepted.update({"appraisal_received_date": {}}) %}
+  {% do data.appraisals.accepted.update({"appraisal_transfer_date": {}}) %}
+  {# save formatted versions of date #}
+  {% do data.appraisals.accepted.appraisal_ordered_date.update({ "short": format_date(appraisal_ordered_date_unix, "short") }) %}
+  {% do data.appraisals.accepted.appraisal_ordered_date.update({ "long": format_date(appraisal_ordered_date_unix, "long") }) %}
+  {% do data.appraisals.accepted.appraisal_received_date.update({ "short": format_date(appraisal_received_date_unix, "short") }) %}
+  {% do data.appraisals.accepted.appraisal_received_date.update({ "long": format_date(appraisal_received_date_unix, "long") }) %}
+  {% do data.appraisals.accepted.appraisal_transfer_date.update({ "short": format_date(appraisal_transfer_date_unix, "short") }) %}
+  {% do data.appraisals.accepted.appraisal_transfer_date.update({ "long": format_date(appraisal_transfer_date_unix, "long") }) %}
+
 {% endif %}
+
 
 {# Full Appraisal Ordered #}
 {% set full_appraisal_ordered_valuations = crm_associations(deal_id, "USER_DEFINED", 196, "limit=99&orderBy=-appraisal_ordered_date&appraisal_product_description__in=FULL,FULL_MULTIUNIT,FULL_INVESTMENT_CONDO,FULL_INVESTMENT,FULL_CONDO&appraisal_payment_type=CARD", properties_to_grab, false) %} 
@@ -136,9 +168,24 @@
   {% set most_recent_obj = full_appraisal_ordered_valuations.results[0] %}
   {% set total = full_appraisal_ordered_valuations.total %}
 
-  {% do data.appraisals.ordered.update({ "all": property_valuation_objs }) %}
-  {% do data.appraisals.ordered.update({ "most_recent": most_recent_obj }) %}
-  {% do data.appraisals.ordered.update({ "total": total }) %}
+  {# add most recent #}
+  {% do data.appraisals.update({"full_ordered": most_recent_obj}) %}
+  {# save the datetime in a variable #}
+  {% set appraisal_ordered_date_unix = most_recent_obj.appraisal_ordered_date %}
+  {% set appraisal_received_date_unix = most_recent_obj.appraisal_received_date %}
+  {% set appraisal_transfer_date_unix = most_recent_obj.appraisal_transfer_date %}
+  {# resets the set property value. This is because HubSpot stores this as a unix string and an object is needed #}
+  {% do data.appraisals.full_ordered.update({"appraisal_ordered_date": {}}) %}
+  {% do data.appraisals.full_ordered.update({"appraisal_received_date": {}}) %}
+  {% do data.appraisals.full_ordered.update({"appraisal_transfer_date": {}}) %}
+  {# save formatted versions of date #}
+  {% do data.appraisals.full_ordered.appraisal_ordered_date.update({ "short": format_date(appraisal_ordered_date_unix, "short") }) %}
+  {% do data.appraisals.full_ordered.appraisal_ordered_date.update({ "long": format_date(appraisal_ordered_date_unix, "long") }) %}
+  {% do data.appraisals.full_ordered.appraisal_received_date.update({ "short": format_date(appraisal_received_date_unix, "short") }) %}
+  {% do data.appraisals.full_ordered.appraisal_received_date.update({ "long": format_date(appraisal_received_date_unix, "long") }) %}
+  {% do data.appraisals.full_ordered.appraisal_transfer_date.update({ "short": format_date(appraisal_transfer_date_unix, "short") }) %}
+  {% do data.appraisals.full_ordered.appraisal_transfer_date.update({ "long": format_date(appraisal_transfer_date_unix, "long") }) %}
+
 {% endif %}
 
 
